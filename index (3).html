@@ -1,0 +1,1084 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VirtNum — Виртуальные номера для Telegram</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
+  :root {
+    --primary: #6366f1; --primary-dark: #4f46e5; --accent: #06b6d4;
+    --tg: #229ED9; --dark: #0f172a; --gray: #64748b;
+    --light: #f8fafc; --green: #10b981; --red: #ef4444; --border: #e2e8f0;
+  }
+  html { scroll-behavior: smooth; }
+  body { background: var(--light); color: var(--dark); line-height: 1.6; }
+
+  header { position: sticky; top: 0; z-index: 100; background: rgba(255,255,255,0.96); backdrop-filter: blur(10px); border-bottom: 1px solid var(--border); }
+  .nav { max-width: 1200px; margin: 0 auto; padding: 12px 24px; display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+  .logo { font-size: 23px; font-weight: 800; color: var(--primary); text-decoration: none; letter-spacing: -0.5px; }
+  .logo span { color: var(--dark); }
+  nav ul { display: flex; gap: 24px; list-style: none; }
+  nav a { text-decoration: none; color: var(--gray); font-weight: 500; transition: color .2s; font-size: 15px; }
+  nav a:hover { color: var(--primary); }
+  .nav-actions { display: flex; gap: 10px; align-items: center; }
+  .btn { padding: 11px 22px; border-radius: 10px; border: none; cursor: pointer; font-weight: 600; font-size: 15px; transition: all .2s; text-decoration: none; display: inline-block; text-align: center; font-family: inherit; white-space: nowrap; }
+  .btn-primary { background: var(--primary); color: #fff; }
+  .btn-primary:hover { background: var(--primary-dark); transform: translateY(-1px); box-shadow: 0 8px 20px rgba(99,102,241,.3); }
+  .btn-outline { background: transparent; border: 2px solid var(--primary); color: var(--primary); }
+  .btn-outline:hover { background: var(--primary); color: #fff; }
+  .btn-light { background: #fff; color: var(--dark); }
+  .btn-light:hover { transform: translateY(-1px); box-shadow: 0 8px 20px rgba(255,255,255,.2); }
+  .btn-tg { background: var(--tg); color: #fff; }
+  .btn-tg:hover { background: #1a7fb0; }
+  .btn-sm { padding: 8px 16px; font-size: 14px; }
+  .btn-success { background: var(--green); color: #fff; }
+  .btn-success:hover { background: #059669; }
+
+  .icon-btn { position: relative; width: 42px; height: 42px; border-radius: 10px; border: 1.5px solid var(--border); background: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all .18s; color: var(--dark); text-decoration: none; }
+  .icon-btn:hover { border-color: var(--primary); color: var(--primary); }
+  .icon-btn svg { width: 20px; height: 20px; }
+  .icon-btn .badge { position: absolute; top: -6px; right: -6px; background: var(--red); color: #fff; font-size: 11px; font-weight: 700; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 10px; display: flex; align-items: center; justify-content: center; border: 2px solid #fff; }
+
+  .hero { background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #312e81 100%); color: #fff; padding: 80px 24px 100px; position: relative; overflow: hidden; }
+  .hero::before { content: ''; position: absolute; width: 600px; height: 600px; border-radius: 50%; background: radial-gradient(circle, rgba(99,102,241,.35), transparent 70%); top: -200px; right: -150px; pointer-events: none; }
+  .hero::after { content: ''; position: absolute; width: 400px; height: 400px; border-radius: 50%; background: radial-gradient(circle, rgba(34,158,217,.3), transparent 70%); bottom: -150px; left: -100px; pointer-events: none; }
+  .hero-inner { max-width: 1200px; margin: 0 auto; position: relative; z-index: 2; }
+  .hero-badge { display: inline-block; background: rgba(34,158,217,.18); border: 1px solid rgba(34,158,217,.4); color: #7dd3fc; padding: 7px 16px; border-radius: 30px; font-size: 13px; font-weight: 600; margin-bottom: 22px; letter-spacing: .3px; text-transform: uppercase; }
+  .hero h1 { font-size: 50px; line-height: 1.12; max-width: 780px; margin-bottom: 20px; font-weight: 800; letter-spacing: -1px; }
+  .hero h1 em { font-style: normal; color: var(--accent); }
+  .hero p { font-size: 19px; color: #cbd5e1; max-width: 620px; margin-bottom: 34px; }
+  .hero-btns { display: flex; gap: 16px; flex-wrap: wrap; }
+  .hero-stats { display: flex; gap: 48px; margin-top: 50px; flex-wrap: wrap; }
+  .hero-stats .stat b { display: block; font-size: 32px; font-weight: 800; color: var(--accent); line-height: 1.1; }
+  .hero-stats .stat span { color: #94a3b8; font-size: 14px; }
+
+  section { padding: 80px 24px; }
+  .container { max-width: 1200px; margin: 0 auto; }
+  .section-title { text-align: center; margin-bottom: 50px; }
+  .section-title h2 { font-size: 38px; font-weight: 800; margin-bottom: 12px; letter-spacing: -0.8px; }
+  .section-title p { color: var(--gray); font-size: 17px; }
+
+  .ref-section { background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border-top: 1px solid #fcd34d; border-bottom: 1px solid #fcd34d; }
+  .ref-hero { max-width: 900px; margin: 0 auto; text-align: center; }
+  .ref-hero .ref-badge { display: inline-block; background: #fff; color: #92400e; padding: 6px 16px; border-radius: 30px; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 18px; border: 1px solid #fcd34d; }
+  .ref-hero h2 { font-size: 40px; font-weight: 800; color: #78350f; margin-bottom: 14px; letter-spacing: -0.8px; }
+  .ref-hero p { font-size: 18px; color: #92400e; margin-bottom: 28px; max-width: 620px; margin-left: auto; margin-right: auto; }
+  .ref-steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; max-width: 780px; margin: 0 auto 30px; }
+  .ref-step { background: #fff; border-radius: 14px; padding: 22px 16px; border: 1px solid #fcd34d; }
+  .ref-step .rn { width: 36px; height: 36px; border-radius: 10px; background: #fef3c7; color: #92400e; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 15px; margin: 0 auto 12px; }
+  .ref-step h4 { font-size: 15px; margin-bottom: 6px; color: #78350f; }
+  .ref-step p { font-size: 13px; color: #92400e; margin: 0; }
+
+  .services { background: #fff; }
+  .country-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 20px; }
+  .country-card { background: #fff; border: 1px solid var(--border); border-radius: 14px; padding: 26px 22px; text-align: center; transition: all .22s; }
+  .country-card:hover { transform: translateY(-5px); box-shadow: 0 16px 32px rgba(15,23,42,.07); border-color: #c7d2fe; }
+  .country-card .flag { font-size: 40px; line-height: 1; margin-bottom: 14px; }
+  .country-card h3 { font-size: 18px; margin-bottom: 6px; font-weight: 700; }
+  .country-card .price { font-size: 28px; font-weight: 800; color: var(--primary); margin-bottom: 4px; letter-spacing: -0.5px; }
+  .country-card .note { color: var(--gray); font-size: 13px; margin-bottom: 18px; }
+  .country-card .btn { width: 100%; padding: 10px 18px; font-size: 14px; }
+
+  .why-tg { background: linear-gradient(135deg, #f0f9ff, #e0f2fe); }
+  .why-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px,1fr)); gap: 20px; }
+  .why-card { background: #fff; border-radius: 14px; padding: 28px 26px; border-left: 3px solid var(--tg); transition: transform .22s; }
+  .why-card:hover { transform: translateY(-3px); }
+  .why-card h4 { font-size: 17px; margin-bottom: 10px; font-weight: 700; }
+  .why-card p { color: var(--gray); font-size: 14.5px; }
+
+  .steps { background: #fff; }
+  .step-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px,1fr)); gap: 22px; }
+  .step { padding: 26px 22px; border: 1px solid var(--border); border-radius: 14px; background: #fff; }
+  .step .num { width: 44px; height: 44px; border-radius: 12px; margin-bottom: 18px; background: #eef2ff; color: var(--primary-dark); font-size: 16px; font-weight: 800; display: flex; align-items: center; justify-content: center; }
+  .step h4 { font-size: 17px; margin-bottom: 8px; font-weight: 700; }
+  .step p { color: var(--gray); font-size: 14.5px; }
+
+  .cta-wrap { padding: 0 24px 80px; }
+  .cta { background: linear-gradient(135deg, var(--tg) 0%, #0d6efd 100%); color: #fff; text-align: center; border-radius: 20px; padding: 60px 24px; max-width: 1200px; margin: 0 auto; }
+  .cta h2 { font-size: 34px; margin-bottom: 12px; font-weight: 800; letter-spacing: -0.6px; }
+  .cta p { font-size: 17px; color: #e0f2fe; margin-bottom: 28px; }
+
+  footer { background: var(--dark); color: #94a3b8; padding: 60px 24px 30px; }
+  .foot-grid { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 40px; }
+  .foot-grid h5 { color: #fff; font-size: 15px; margin-bottom: 16px; font-weight: 700; }
+  .foot-grid ul { list-style: none; }
+  .foot-grid ul li { margin-bottom: 10px; font-size: 14px; }
+  .foot-grid a { color: #94a3b8; text-decoration: none; transition: color .2s; }
+  .foot-grid a:hover { color: #fff; }
+  .foot-bottom { max-width: 1200px; margin: 40px auto 0; padding-top: 24px; border-top: 1px solid #1e293b; text-align: center; font-size: 13px; }
+
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(15,23,42,.6); z-index: 200; align-items: center; justify-content: center; padding: 20px; overflow-y: auto; }
+  .modal-overlay.active { display: flex; }
+  .modal { background: #fff; border-radius: 16px; padding: 34px 28px; width: 100%; max-width: 440px; animation: pop .22s ease; position: relative; margin: auto; }
+  @keyframes pop { from { transform: scale(.94); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .modal h3 { font-size: 22px; margin-bottom: 6px; font-weight: 800; letter-spacing: -0.3px; }
+  .modal .sub { color: var(--gray); font-size: 14px; margin-bottom: 22px; }
+  .modal input, .modal select { width: 100%; padding: 12px 15px; border: 1.5px solid var(--border); border-radius: 10px; font-size: 15px; margin-bottom: 12px; outline: none; transition: border .2s; font-family: inherit; background: #fff; color: var(--dark); }
+  .modal input:focus, .modal select:focus { border-color: var(--primary); }
+  .modal .btn { width: 100%; }
+  .modal .close { position: absolute; top: 12px; right: 14px; cursor: pointer; font-size: 22px; color: var(--gray); line-height: 1; background: none; border: none; padding: 6px; border-radius: 8px; }
+  .modal .close:hover { background: var(--light); color: var(--dark); }
+  #modalPrice { background: #eef2ff; color: #4338ca; font-weight: 700; padding: 10px 14px; border-radius: 10px; margin-bottom: 14px; font-size: 14.5px; display: none; }
+  #modalPrice.show { display: block; }
+  .modal-switch { text-align: center; font-size: 14px; color: var(--gray); margin-top: 14px; }
+  .modal-switch a { color: var(--primary); font-weight: 600; cursor: pointer; text-decoration: none; }
+  .modal-switch a:hover { text-decoration: underline; }
+
+  .pay-box { background: #f0fdf4; border: 1.5px solid #bbf7d0; border-radius: 12px; padding: 18px; margin-bottom: 14px; text-align: center; }
+  .pay-box .pay-label { font-size: 12px; font-weight: 700; color: #15803d; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 12px; }
+  .qr-wrap { background: #fff; border-radius: 10px; padding: 12px; display: inline-block; margin-bottom: 12px; border: 1px solid #bbf7d0; }
+  .qr-wrap img { display: block; }
+  .pay-link { display: block; word-break: break-all; font-size: 12.5px; color: #166534; background: #fff; padding: 10px 12px; border-radius: 8px; text-decoration: none; margin-bottom: 10px; border: 1px solid #bbf7d0; transition: background .18s; }
+  .pay-link:hover { background: #f0fdf4; }
+  .pay-amount { font-size: 28px; font-weight: 800; color: #14532d; margin-bottom: 4px; }
+  .pay-amount-label { font-size: 13px; color: #166534; margin-bottom: 14px; }
+  .pay-actions { display: flex; gap: 8px; margin-bottom: 0; }
+  .pay-actions .btn { flex: 1; padding: 10px 12px; font-size: 13.5px; }
+  .screenshot-hint { background: #fef3c7; border: 1.5px solid #fde68a; border-radius: 10px; padding: 12px 14px; font-size: 13px; color: #92400e; margin-bottom: 14px; line-height: 1.5; }
+
+  .topup-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
+  .topup-btn { padding: 13px 8px; border: 1.5px solid var(--border); border-radius: 10px; background: #fff; cursor: pointer; font-weight: 700; font-size: 15px; color: var(--dark); transition: all .18s; font-family: inherit; }
+  .topup-btn:hover { border-color: var(--primary); }
+  .topup-btn.active { border-color: var(--primary); background: var(--primary); color: #fff; }
+
+  .user-menu { position: relative; }
+  .user-btn { display: flex; align-items: center; gap: 8px; padding: 7px 12px 7px 8px; border-radius: 10px; border: 1.5px solid var(--border); background: #fff; cursor: pointer; font-weight: 600; font-size: 14px; font-family: inherit; color: var(--dark); transition: all .18s; }
+  .user-btn:hover { border-color: var(--primary); }
+  .user-avatar { width: 28px; height: 28px; border-radius: 50%; background: var(--primary); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; overflow: hidden; }
+  .user-avatar img { width: 100%; height: 100%; object-fit: cover; }
+  
+  .user-dropdown { display: none; position: absolute; top: calc(100% + 8px); right: 0; background: #fff; border: 1px solid var(--border); border-radius: 12px; min-width: 240px; box-shadow: 0 12px 30px rgba(15,23,42,.12); overflow: hidden; z-index: 110; }
+  .user-dropdown.active { display: block; }
+  .ud-balance { padding: 14px 16px; background: var(--light); border-bottom: 1px solid var(--border); }
+  .ud-balance .lbl { font-size: 11px; color: var(--gray); margin-bottom: 2px; text-transform: uppercase; letter-spacing: .5px; }
+  .ud-balance .val { font-size: 20px; font-weight: 800; color: var(--primary); }
+  .ud-ref { padding: 12px 16px; background: #fffbeb; border-bottom: 1px solid #fde68a; cursor: pointer; transition: background .15s; }
+  .ud-ref:hover { background: #fef3c7; }
+  .ud-ref .lbl { font-size: 11px; color: #92400e; margin-bottom: 2px; text-transform: uppercase; letter-spacing: .5px; font-weight: 700; }
+  .ud-ref .val { font-size: 13px; font-weight: 600; color: #78350f; }
+  .user-dropdown a, .user-dropdown button { display: block; width: 100%; padding: 11px 16px; text-decoration: none; color: var(--dark); font-size: 14px; font-weight: 500; border: none; background: none; cursor: pointer; text-align: left; font-family: inherit; transition: background .15s; }
+  .user-dropdown a:hover, .user-dropdown button:hover { background: var(--light); }
+  .user-dropdown .logout { color: var(--red); border-top: 1px solid var(--border); }
+
+  .order-item { border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; margin-bottom: 10px; background: #fff; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+  .order-item .oi-info { flex: 1; min-width: 0; }
+  .order-item .oi-title { font-weight: 700; font-size: 15px; margin-bottom: 2px; }
+  .order-item .oi-meta { font-size: 12.5px; color: var(--gray); }
+  .order-item .oi-price { font-weight: 800; color: var(--primary); font-size: 17px; white-space: nowrap; }
+  .order-status { display: inline-block; font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 20px; text-transform: uppercase; letter-spacing: .3px; }
+  .order-status.pending { background: #fef3c7; color: #92400e; }
+  .order-status.paid { background: #d1fae5; color: #065f46; }
+  .empty-state { text-align: center; padding: 50px 20px; color: var(--gray); }
+  .empty-state .es-title { font-size: 16px; font-weight: 700; color: var(--dark); margin-bottom: 6px; }
+  .empty-state .es-text { font-size: 14px; margin-bottom: 20px; }
+
+  .ref-link-box { display: flex; gap: 8px; margin-bottom: 16px; }
+  .ref-link-box input { flex: 1; padding: 12px 14px; border: 1.5px solid var(--border); border-radius: 10px; font-size: 13px; font-family: 'Courier New', monospace; background: #f8fafc; color: var(--dark); margin-bottom: 0; }
+  .ref-link-box .btn { flex-shrink: 0; padding: 12px 18px; }
+  .ref-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+  .ref-stat { background: #fffbeb; border: 1px solid #fde68a; border-radius: 12px; padding: 14px 16px; text-align: center; }
+  .ref-stat .rs-label { font-size: 11px; color: #92400e; text-transform: uppercase; letter-spacing: .5px; font-weight: 700; margin-bottom: 4px; }
+  .ref-stat .rs-value { font-size: 22px; font-weight: 800; color: #78350f; }
+  .ref-reward-info { background: #ecfdf5; border: 1.5px solid #a7f3d0; border-radius: 10px; padding: 12px 14px; font-size: 13px; color: #065f46; margin-bottom: 16px; line-height: 1.5; }
+  .ref-list-title { font-size: 13px; font-weight: 700; color: var(--gray); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+  .ref-item { display: flex; justify-content: space-between; align-items: center; padding: 11px 14px; border: 1px solid var(--border); border-radius: 10px; margin-bottom: 8px; background: #fff; gap: 10px; }
+  .ref-item .ri-info { flex: 1; min-width: 0; }
+  .ref-item .ri-name { font-weight: 600; font-size: 14px; margin-bottom: 2px; }
+  .ref-item .ri-meta { font-size: 12px; color: var(--gray); }
+  .ref-item .ri-status { font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 20px; text-transform: uppercase; letter-spacing: .3px; white-space: nowrap; }
+  .ref-item .ri-status.waiting { background: #fef3c7; color: #92400e; }
+  .ref-item .ri-status.paid { background: #d1fae5; color: #065f46; }
+  .share-row { display: flex; gap: 8px; margin-bottom: 16px; }
+  .share-row .btn { flex: 1; padding: 10px 8px; font-size: 13px; }
+
+  .toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(120px); background: var(--dark); color: #fff; padding: 13px 24px; border-radius: 10px; font-size: 15px; font-weight: 500; z-index: 300; transition: transform .3s; box-shadow: 0 12px 30px rgba(0,0,0,.3); max-width: 90vw; text-align: center; }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+  .toast.success { background: var(--green); }
+  .toast.error { background: var(--red); }
+
+  @media (max-width: 900px) {
+    nav ul { display: none; }
+    .hero h1 { font-size: 34px; }
+    .hero p { font-size: 16px; }
+    .section-title h2 { font-size: 26px; }
+    .foot-grid { grid-template-columns: 1fr 1fr; }
+    .cta h2 { font-size: 26px; }
+    .nav-actions .btn-outline { display: none; }
+    .ref-hero h2 { font-size: 30px; }
+    .ref-steps { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 560px) {
+    section { padding: 56px 18px; }
+    .hero { padding: 50px 18px 70px; }
+    .hero h1 { font-size: 28px; }
+    .hero-stats { gap: 22px; }
+    .hero-stats .stat b { font-size: 22px; }
+    .hero-stats .stat span { font-size: 12px; }
+    .cta h2 { font-size: 22px; }
+    .foot-grid { grid-template-columns: 1fr; gap: 26px; }
+    .country-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
+    .country-card { padding: 18px 12px; }
+    .country-card .flag { font-size: 30px; }
+    .country-card .price { font-size: 22px; }
+    .country-card .note { font-size: 11.5px; }
+    .country-card h3 { font-size: 15px; }
+    .topup-grid { grid-template-columns: repeat(3, 1fr); }
+    .topup-btn { font-size: 13px; padding: 11px 4px; }
+    .icon-btn { width: 38px; height: 38px; }
+    .pay-amount { font-size: 24px; }
+    .ref-hero h2 { font-size: 24px; }
+    .ref-hero p { font-size: 15px; }
+    .ref-link-box { flex-direction: column; }
+    .ref-link-box .btn { width: 100%; }
+    .share-row { flex-wrap: wrap; }
+    .share-row .btn { min-width: 45%; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="nav">
+    <a href="#" class="logo">Virt<span>Num</span></a>
+    <nav>
+      <ul>
+        <li><a href="#services">Цены</a></li>
+        <li><a href="#why-tg">Зачем номер</a></li>
+        <li><a href="#referral">Рефералам</a></li>
+        <li><a href="#steps">Как работает</a></li>
+      </ul>
+    </nav>
+    <div class="nav-actions" id="navActions"></div>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="hero-inner">
+    <div class="hero-badge">Номера только для Telegram</div>
+    <h1>Виртуальные номера <em>для Telegram</em> — регистрация и разблокировка</h1>
+    <p>Заблокировали аккаунт в ТГ? Нужен второй или анонимный аккаунт? Купи виртуальный номер за 30 секунд и зарегистрируйся заново. Без паспорта, без абонентской платы.</p>
+    <div class="hero-btns">
+      <button class="btn btn-light" onclick="openModal()">Купить номер</button>
+    </div>
+    <div class="hero-stats">
+      <div class="stat"><b>60+</b><span>Стран на выбор</span></div>
+      <div class="stat"><b>30 сек</b><span>Активация</span></div>
+      <div class="stat"><b>99.9%</b><span>Доставка SMS</span></div>
+      <div class="stat"><b>24/7</b><span>Поддержка</span></div>
+    </div>
+  </div>
+</section>
+
+<section class="ref-section" id="referral">
+  <div class="ref-hero">
+    <div class="ref-badge">Реферальная программа</div>
+    <h2>Приведи друга — получи 30 ₽ на баланс</h2>
+    <p>Поделись своей ссылкой. Когда друг зарегистрируется и купит первый номер — тебе автоматически зачислится 30 ₽.</p>
+    <div class="ref-steps">
+      <div class="ref-step">
+        <div class="rn">01</div>
+        <h4>Скопируй ссылку</h4>
+        <p>Войди в аккаунт и возьми свою реферальную ссылку в разделе «Рефералы».</p>
+      </div>
+      <div class="ref-step">
+        <div class="rn">02</div>
+        <h4>Поделись с другом</h4>
+        <p>Отправь ссылку в чат, соцсети или Telegram. Друг переходит и регистрируется.</p>
+      </div>
+      <div class="ref-step">
+        <div class="rn">03</div>
+        <h4>Получи 30 ₽</h4>
+        <p>После первой покупки номера другом — 30 ₽ падают тебе на баланс автоматически.</p>
+      </div>
+    </div>
+    <button class="btn btn-primary" onclick="openReferral()">Получить мою ссылку</button>
+  </div>
+</section>
+
+<section class="why-tg" id="why-tg">
+  <div class="container">
+    <div class="section-title">
+      <h2>Зачем нужен виртуальный номер для Telegram</h2>
+      <p>Наши номера подходят только для Telegram — и решают главные проблемы аккаунта</p>
+    </div>
+    <div class="why-grid">
+      <div class="why-card">
+        <h4>Разблокировка аккаунта</h4>
+        <p>Заблокировали аккаунт в ТГ — не проблема. Купи номер и зарегистрируйся заново за минуту. Второй шанс без потери времени.</p>
+      </div>
+      <div class="why-card">
+        <h4>Второй аккаунт</h4>
+        <p>Нужен отдельный профиль для работы, бизнеса или учёбы? Купи номер и зарегистрируйся в Telegram без привязки к личному телефону.</p>
+      </div>
+      <div class="why-card">
+        <h4>Анонимность</h4>
+        <p>Не хочешь светить личный номер в чатах и каналах? Виртуальный номер скроет настоящий от собеседников и ботов.</p>
+      </div>
+      <div class="why-card">
+        <h4>Зарубежный номер</h4>
+        <p>Доступ к Telegram-функциям и каналам, которые ограничены по региону. США, Индия, Казахстан и ещё 60+ стран.</p>
+      </div>
+      <div class="why-card">
+        <h4>Нет доступа к своему номеру</h4>
+        <p>Потерял SIM-карту или номер уже не у тебя? Виртуальный номер решит проблему — регистрация пройдёт без старого телефона.</p>
+      </div>
+      <div class="why-card">
+        <h4>Бизнес и фриланс</h4>
+        <p>Менеджеры, боты, реклама — отдельный ТГ-аккаунт с чистым номером для работы. Без риска для личного профиля.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="services" id="services">
+  <div class="container">
+    <div class="section-title">
+      <h2>Виртуальные номера по странам</h2>
+      <p>Номера только для Telegram. Цена за один номер — SMS-код приходит за 1–2 минуты.</p>
+    </div>
+    <div class="country-grid">
+      <div class="country-card" data-country="США" data-price="110">
+        <div class="flag">🇺🇸</div><h3>США</h3><div class="price">110 ₽</div>
+        <p class="note">Регистрация и разблокировка</p>
+        <button class="btn btn-primary" onclick="buyCountry(this)">Купить номер</button>
+      </div>
+      <div class="country-card" data-country="Мьянма" data-price="100">
+        <div class="flag">🇲🇲</div><h3>Мьянма</h3><div class="price">100 ₽</div>
+        <p class="note">Регистрация и разблокировка</p>
+        <button class="btn btn-primary" onclick="buyCountry(this)">Купить номер</button>
+      </div>
+      <div class="country-card" data-country="Индия" data-price="100">
+        <div class="flag">🇮🇳</div><h3>Индия</h3><div class="price">100 ₽</div>
+        <p class="note">Регистрация и разблокировка</p>
+        <button class="btn btn-primary" onclick="buyCountry(this)">Купить номер</button>
+      </div>
+      <div class="country-card" data-country="Бразилия" data-price="180">
+        <div class="flag">🇧🇷</div><h3>Бразилия</h3><div class="price">180 ₽</div>
+        <p class="note">Регистрация и разблокировка</p>
+        <button class="btn btn-primary" onclick="buyCountry(this)">Купить номер</button>
+      </div>
+      <div class="country-card" data-country="Узбекистан" data-price="180">
+        <div class="flag">🇺🇿</div><h3>Узбекистан</h3><div class="price">180 ₽</div>
+        <p class="note">Регистрация и разблокировка</p>
+        <button class="btn btn-primary" onclick="buyCountry(this)">Купить номер</button>
+      </div>
+      <div class="country-card" data-country="Китай" data-price="120">
+        <div class="flag">🇨🇳</div><h3>Китай</h3><div class="price">120 ₽</div>
+        <p class="note">Регистрация и разблокировка</p>
+        <button class="btn btn-primary" onclick="buyCountry(this)">Купить номер</button>
+      </div>
+      <div class="country-card" data-country="Филиппины" data-price="150">
+        <div class="flag">🇵🇭</div><h3>Филиппины</h3><div class="price">150 ₽</div>
+        <p class="note">Регистрация и разблокировка</p>
+        <button class="btn btn-primary" onclick="buyCountry(this)">Купить номер</button>
+      </div>
+      <div class="country-card" data-country="Нигерия" data-price="100">
+        <div class="flag">🇳🇬</div><h3>Нигерия</h3><div class="price">100 ₽</div>
+        <p class="note">Регистрация и разблокировка</p>
+        <button class="btn btn-primary" onclick="buyCountry(this)">Купить номер</button>
+      </div>
+      <div class="country-card" data-country="Пакистан" data-price="120">
+        <div class="flag">🇵🇰</div><h3>Пакистан</h3><div class="price">120 ₽</div>
+        <p class="note">Регистрация и разблокировка</p>
+        <button class="btn btn-primary" onclick="buyCountry(this)">Купить номер</button>
+      </div>
+      <div class="country-card" data-country="Вьетнам" data-price="180">
+        <div class="flag">🇻🇳</div><h3>Вьетнам</h3><div class="price">180 ₽</div>
+        <p class="note">Регистрация и разблокировка</p>
+        <button class="btn btn-primary" onclick="buyCountry(this)">Купить номер</button>
+      </div>
+      <div class="country-card" data-country="Аргентина" data-price="180">
+        <div class="flag">🇦🇷</div><h3>Аргентина</h3><div class="price">180 ₽</div>
+        <p class="note">Регистрация и разблокировка</p>
+        <button class="btn btn-primary" onclick="buyCountry(this)">Купить номер</button>
+      </div>
+      <div class="country-card" data-country="Казахстан" data-price="300">
+        <div class="flag">🇰🇿</div><h3>Казахстан</h3><div class="price">300 ₽</div>
+        <p class="note">Регистрация и разблокировка</p>
+        <button class="btn btn-primary" onclick="buyCountry(this)">Купить номер</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="steps" id="steps">
+  <div class="container">
+    <div class="section-title">
+      <h2>Как это работает</h2>
+      <p>От оплаты до готового Telegram-аккаунта — 3 шага</p>
+    </div>
+    <div class="step-row">
+      <div class="step">
+        <div class="num">01</div>
+        <h4>Выберите страну и купите номер</h4>
+        <p>Оплатите номер по СБП. Цена фиксированная — без скрытых платежей.</p>
+      </div>
+      <div class="step">
+        <div class="num">02</div>
+        <h4>Отправьте скриншот оплаты</h4>
+        <p>После оплаты нажмите «Отправить скриншот» — он уйдёт в Telegram @karolina_nrl.</p>
+      </div>
+      <div class="step">
+        <div class="num">03</div>
+        <h4>Получите номер и войдите в ТГ</h4>
+        <p>Мы пришлём номер и SMS-код. Введи его в Telegram — аккаунт готов.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="cta-wrap">
+  <div class="cta">
+    <h2>Заблокировали аккаунт в ТГ?</h2>
+    <p>Не проблема — купи номер и зарегистрируйся заново за минуту. Скидка 20% на первый номер.</p>
+    <button class="btn btn-light" onclick="openModal()">Получить номер сейчас</button>
+  </div>
+</div>
+
+<footer>
+  <div class="foot-grid">
+    <div>
+      <div class="logo" style="color:#fff; margin-bottom:14px;">Virt<span style="color:#a5b4fc;">Num</span></div>
+      <p style="font-size:14px; max-width:280px;">Виртуальные номера только для Telegram: регистрация, разблокировка, второй аккаунт. Быстро, анонимно, надёжно.</p>
+    </div>
+    <div>
+      <h5>Сервис</h5>
+      <ul>
+        <li><a href="#services">Цены</a></li>
+        <li><a href="#referral">Рефералам</a></li>
+        <li><a href="#why-tg">Зачем номер</a></li>
+        <li><a href="#steps">Как работает</a></li>
+      </ul>
+    </div>
+    <div>
+      <h5>Помощь</h5>
+      <ul>
+        <li><a href="https://t.me/virtnum1" target="_blank">Канал @virtnum1</a></li>
+        <li><a href="https://t.me/karolina_nrl" target="_blank">Поддержка</a></li>
+        <li><a href="#">FAQ</a></li>
+      </ul>
+    </div>
+    <div>
+      <h5>Документы</h5>
+      <ul>
+        <li><a href="#">Оферта</a></li>
+        <li><a href="#">Политика конфиденциальности</a></li>
+        <li><a href="#">Возврат средств</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="foot-bottom">© 2025 VirtNum · Канал: <a href="https://t.me/virtnum1" target="_blank" style="color:#a5b4fc;">@virtnum1</a></div>
+</footer>
+
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <button class="close" onclick="closeModal('modal')">×</button>
+    <h3>Купить номер для Telegram</h3>
+    <p class="sub">Оставьте контакты — менеджер свяжется за 2 минуты.</p>
+    <div id="modalPrice"></div>
+    <input type="text" id="name" placeholder="Ваше имя">
+    <input type="tel" id="phone" placeholder="Телефон или Telegram">
+    <select id="country">
+      <option value="">Выберите страну номера</option>
+      <option value="США" data-price="110">США — 110 ₽</option>
+      <option value="Мьянма" data-price="100">Мьянма — 100 ₽</option>
+      <option value="Индия" data-price="100">Индия — 100 ₽</option>
+      <option value="Бразилия" data-price="180">Бразилия — 180 ₽</option>
+      <option value="Узбекистан" data-price="180">Узбекистан — 180 ₽</option>
+      <option value="Китай" data-price="120">Китай — 120 ₽</option>
+      <option value="Филиппины" data-price="150">Филиппины — 150 ₽</option>
+      <option value="Нигерия" data-price="100">Нигерия — 100 ₽</option>
+      <option value="Пакистан" data-price="120">Пакистан — 120 ₽</option>
+      <option value="Вьетнам" data-price="180">Вьетнам — 180 ₽</option>
+      <option value="Аргентина" data-price="180">Аргентина — 180 ₽</option>
+      <option value="Казахстан" data-price="300">Казахстан — 300 ₽</option>
+    </select>
+    <button class="btn btn-primary" onclick="submitOrder()">Оформить заказ</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="paymentModal">
+  <div class="modal">
+    <button class="close" onclick="closeModal('paymentModal')">×</button>
+    <h3>Оплата заказа</h3>
+    <p class="sub">Переведите сумму по QR-коду или ссылке, затем отправьте скриншот в Telegram.</p>
+    <div class="pay-box">
+      <div class="pay-label">Сумма к оплате</div>
+      <div class="pay-amount" id="payAmount">0 ₽</div>
+      <div class="pay-amount-label" id="payCountry">—</div>
+      <div class="qr-wrap"><div id="qrCode"></div></div>
+      <a class="pay-link" id="payLink" href="#" target="_blank">—</a>
+      <div class="pay-actions">
+        <button class="btn btn-outline" onclick="copyPayLink()">Скопировать ссылку</button>
+        <a class="btn btn-tg" id="tgScreenshotBtn" href="#" target="_blank">Отправить скриншот</a>
+      </div>
+    </div>
+    <div class="screenshot-hint">
+      <strong>Как это работает:</strong> оплатите по QR или ссылке → сделайте скриншот → нажмите «Отправить скриншот» → в Telegram откроется чат @karolina_nrl, прикрепите скриншот и отправьте. Мы зачислим номер и пришлём SMS-код.
+    </div>
+    <button class="btn btn-success" onclick="markAsPaid()">Я оплатил — заказ принят</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="ordersModal">
+  <div class="modal" style="max-width: 560px;">
+    <button class="close" onclick="closeModal('ordersModal')">×</button>
+    <h3>Мои заказы</h3>
+    <p class="sub">История ваших заказов и статусы оплаты.</p>
+    <div id="ordersList"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="referralModal">
+  <div class="modal" style="max-width: 520px;">
+    <button class="close" onclick="closeModal('referralModal')">×</button>
+    <h3>Реферальная программа</h3>
+    <p class="sub">Приведи друга — получи 30 ₽ после его первой покупки.</p>
+    <div class="ref-stats">
+      <div class="ref-stat"><div class="rs-label">Приглашено</div><div class="rs-value" id="refCount">0</div></div>
+      <div class="ref-stat"><div class="rs-label">Заработано</div><div class="rs-value" id="refEarned">0 ₽</div></div>
+    </div>
+    <div class="ref-link-box">
+      <input type="text" id="refLinkInput" readonly value="">
+      <button class="btn btn-primary" onclick="copyRefLink()">Копировать</button>
+    </div>
+    <div class="share-row">
+      <a class="btn btn-tg" id="shareTg" href="#" target="_blank">Telegram</a>
+      <a class="btn btn-tg" id="shareWa" href="#" target="_blank" style="background:#25D366;">WhatsApp</a>
+      <button class="btn btn-outline" onclick="shareNative()">Ещё</button>
+    </div>
+    <div class="ref-reward-info">
+      <strong>Как получить 30 ₽:</strong> друг регистрируется по вашей ссылке и покупает первый номер. Бонус автоматически зачисляется вам на баланс. Количество друзей не ограничено.
+    </div>
+    <div class="ref-list-title">Приглашённые друзья</div>
+    <div id="refList"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="authModal">
+  <div class="modal">
+    <button class="close" onclick="closeModal('authModal')">×</button>
+    <h3 id="authTitle">Регистрация</h3>
+    <p class="sub" id="authSub">Создайте аккаунт, чтобы покупать номера и пополнять баланс.</p>
+    <input type="text" id="authName" placeholder="Ваше имя" style="display:none;">
+    <input type="email" id="authEmail" placeholder="Email">
+    <input type="password" id="authPass" placeholder="Пароль (мин. 4 символа)">
+    <button class="btn btn-primary" id="authSubmitBtn" onclick="submitAuth()">Зарегистрироваться</button>
+    <div class="modal-switch">
+      <span id="authSwitchText">Уже есть аккаунт?</span>
+      <a onclick="toggleAuthMode()" id="authSwitchLink">Войти</a>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="topupModal">
+  <div class="modal">
+    <button class="close" onclick="closeModal('topupModal')">×</button>
+    <h3>Пополнение баланса</h3>
+    <p class="sub">Переведите сумму по СБП и отправьте скриншот в Telegram.</p>
+    <div class="topup-grid">
+      <button class="topup-btn" onclick="selectTopup(this, 500)">500 ₽</button>
+      <button class="topup-btn active" onclick="selectTopup(this, 1000)">1000 ₽</button>
+      <button class="topup-btn" onclick="selectTopup(this, 2000)">2000 ₽</button>
+      <button class="topup-btn" onclick="selectTopup(this, 3000)">3000 ₽</button>
+      <button class="topup-btn" onclick="selectTopup(this, 5000)">5000 ₽</button>
+      <button class="topup-btn" onclick="selectTopup(this, 10000)">10000 ₽</button>
+    </div>
+    <input type="number" id="customAmount" placeholder="Своя сумма, ₽" min="100" style="margin-bottom:14px;">
+    <button class="btn btn-primary" onclick="openTopupPayment()">Перейти к оплате <span id="topupSum">1000</span> ₽</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="topupPaymentModal">
+  <div class="modal">
+    <button class="close" onclick="closeModal('topupPaymentModal')">×</button>
+    <h3>Пополнение баланса</h3>
+    <p class="sub">Переведите сумму по QR-коду или ссылке, затем отправьте скриншот.</p>
+    <div class="pay-box">
+      <div class="pay-label">Сумма к оплате</div>
+      <div class="pay-amount" id="topupPayAmount">1000 ₽</div>
+      <div class="pay-amount-label">Пополнение баланса</div>
+      <div class="qr-wrap"><div id="topupQrCode"></div></div>
+      <a class="pay-link" id="topupPayLink" href="#" target="_blank">—</a>
+      <div class="pay-actions">
+        <button class="btn btn-outline" onclick="copyTopupLink()">Скопировать ссылку</button>
+        <a class="btn btn-tg" id="topupTgBtn" href="#" target="_blank">Отправить скриншот</a>
+      </div>
+    </div>
+    <div class="screenshot-hint">
+      <strong>Как это работает:</strong> оплатите по QR или ссылке → сделайте скриншот → нажмите «Отправить скриншот» → в Telegram откроется чат @karolina_nrl. Мы зачислим баланс в течение 1–2 минут.
+    </div>
+    <button class="btn btn-success" onclick="markTopupAsPaid()">Я оплатил — зачислить</button>
+  </div>
+</div>
+
+<input type="file" id="avatarInput" accept="image/*" style="display:none;" onchange="handleAvatarUpload(this)">
+
+<div class="toast" id="toast">Готово!</div>
+
+<script>
+  const DB_KEY = 'virtnum_db';
+  const SBP_PHONE = '79619112400';
+  const TG_MANAGER = 'karolina_nrl';
+  const TG_CHANNEL = 'virtnum1';
+  const REF_REWARD = 30;
+  const REF_WELCOME = 10;
+
+  function loadDB() {
+    try { return JSON.parse(localStorage.getItem(DB_KEY)) || { users: [], currentEmail: null }; }
+    catch { return { users: [], currentEmail: null }; }
+  }
+  function saveDB(db) { localStorage.setItem(DB_KEY, JSON.stringify(db)); }
+  function currentUser() {
+    const db = loadDB();
+    if (!db.currentEmail) return null;
+    return db.users.find(u => u.email === db.currentEmail) || null;
+  }
+  function saveUser(user) {
+    const db = loadDB();
+    const idx = db.users.findIndex(u => u.email === user.email);
+    if (idx >= 0) db.users[idx] = user;
+    saveDB(db);
+  }
+
+  function makeRefCode(email) {
+    let hash = 0;
+    const str = (email || 'user') + '_vnum';
+    for (let i = 0; i < str.length; i++) hash = (hash * 31 + str.charCodeAt(i)) | 0;
+    return 'VN' + Math.abs(hash).toString(36).slice(0, 6).toUpperCase();
+  }
+  function getUrlRefCode() {
+    const params = new URLSearchParams(window.location.search);
+    return (params.get('ref') || '').toUpperCase().trim();
+  }
+  function rememberRefFromUrl() {
+    const code = getUrlRefCode();
+    if (code) localStorage.setItem('virtnum_pending_ref', code);
+  }
+  function getPendingRef() { return localStorage.getItem('virtnum_pending_ref') || ''; }
+  function clearPendingRef() { localStorage.removeItem('virtnum_pending_ref'); }
+  function getRefLink(email) {
+    const code = makeRefCode(email);
+    const base = window.location.origin + window.location.pathname;
+    return `${base}?ref=${code}`;
+  }
+
+  function creditReferrerIfNeeded(buyerEmail) {
+    const db = loadDB();
+    const buyer = db.users.find(u => u.email === buyerEmail);
+    if (!buyer || buyer.referralRewarded || !buyer.referredBy) return;
+    const referrer = db.users.find(u => makeRefCode(u.email) === buyer.referredBy);
+    if (!referrer) return;
+    referrer.balance = (referrer.balance || 0) + REF_REWARD;
+    referrer.refEarnings = (referrer.refEarnings || 0) + REF_REWARD;
+    buyer.referralRewarded = true;
+    saveDB(db);
+    const cur = currentUser();
+    if (cur && cur.email === referrer.email) {
+      renderHeader();
+      showToast(`Вам начислено ${REF_REWARD} ₽ за приглашённого друга!`, 'success');
+    }
+  }
+
+  function renderHeader() {
+    const user = currentUser();
+    const navActions = document.getElementById('navActions');
+    const orderCount = user && user.orders ? user.orders.filter(o => o.status === 'pending').length : 0;
+
+    if (user) {
+      const initial = (user.name || user.email).charAt(0).toUpperCase();
+      const avatarHtml = user.avatar 
+        ? `<img src="${user.avatar}" alt="avatar">`
+        : initial;
+
+      navActions.innerHTML = `
+        <a class="icon-btn" href="https://t.me/${TG_CHANNEL}" target="_blank" title="Канал @${TG_CHANNEL}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4l16 8-16 8 4-8z"/></svg>
+        </a>
+        <button class="icon-btn" onclick="openReferral()" title="Рефералам">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+        </button>
+        <button class="icon-btn" onclick="openOrders()" title="Мои заказы">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+          ${orderCount > 0 ? `<span class="badge">${orderCount}</span>` : ''}
+        </button>
+        <button class="btn btn-tg btn-sm" onclick="openTopup()">Пополнить</button>
+        <div class="user-menu">
+          <button class="user-btn" onclick="toggleUserMenu()">
+            <span class="user-avatar">${avatarHtml}</span>
+            <span>${user.name || user.email.split('@')[0]}</span>
+          </button>
+          <div class="user-dropdown" id="userDropdown">
+            <div class="ud-balance"><div class="lbl">Баланс</div><div class="val">${user.balance} ₽</div></div>
+            <div class="ud-ref" onclick="closeUserMenu(); openReferral();">
+              <div class="lbl">Приведи друга</div><div class="val">Получи 30 ₽ за друга →</div>
+            </div>
+            <a href="#services" onclick="closeUserMenu()">Купить номер</a>
+            <button onclick="closeUserMenu(); openTopup();">Пополнить баланс</button>
+            <button onclick="closeUserMenu(); openOrders();">Мои заказы</button>
+            <button onclick="closeUserMenu(); openReferral();">Реферальная программа</button>
+            <button onclick="closeUserMenu(); document.getElementById('avatarInput').click();" style="color:var(--primary); font-weight:600;">Сменить аватар</button>
+            <a href="https://t.me/${TG_CHANNEL}" target="_blank" onclick="closeUserMenu()">Канал @${TG_CHANNEL}</a>
+            <button class="logout" onclick="logout()">Выйти</button>
+          </div>
+        </div>
+      `;
+    } else {
+      navActions.innerHTML = `
+        <a class="icon-btn" href="https://t.me/${TG_CHANNEL}" target="_blank" title="Канал @${TG_CHANNEL}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4l16 8-16 8 4-8z"/></svg>
+        </a>
+        <button class="btn btn-outline btn-sm" onclick="openAuth()">Войти</button>
+        <button class="btn btn-primary" onclick="openModal()">Купить номер</button>
+      `;
+    }
+  }
+
+  function handleAvatarUpload(input) {
+    const file = input.files[0];
+    if (!file) return;
+    if (file.size > 500 * 1024) {
+      showToast('Файл слишком большой. Максимум 500 КБ.', 'error');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const user = currentUser();
+      if (!user) return;
+      user.avatar = e.target.result;
+      saveUser(user);
+      renderHeader();
+      showToast('Аватарка обновлена!', 'success');
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function toggleUserMenu() {
+    const dd = document.getElementById('userDropdown');
+    if (dd) dd.classList.toggle('active');
+  }
+  function closeUserMenu() {
+    const dd = document.getElementById('userDropdown');
+    if (dd) dd.classList.remove('active');
+  }
+  document.addEventListener('click', function(e) {
+    if (!e.target.closest('.user-menu')) closeUserMenu();
+  });
+
+  function openModal(id) { document.getElementById(id || 'modal').classList.add('active'); }
+  function closeModal(id) { document.getElementById(id || 'modal').classList.remove('active'); }
+  document.querySelectorAll('.modal-overlay').forEach(ov => {
+    ov.addEventListener('click', function(e) { if (e.target === this) closeModal(this.id); });
+  });
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') document.querySelectorAll('.modal-overlay.active').forEach(m => m.classList.remove('active'));
+  });
+
+  function makeQrUrl(data, size = 180) {
+    return `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(data)}`;
+  }
+
+  function buyCountry(btn) {
+    const card = btn.closest('.country-card');
+    const country = card.dataset.country;
+    const price = card.dataset.price;
+    const select = document.getElementById('country');
+    for (const opt of select.options) if (opt.value === country) { opt.selected = true; break; }
+    showPrice(country, price);
+    openModal('modal');
+  }
+  function showPrice(country, price) {
+    const el = document.getElementById('modalPrice');
+    if (country && price) { el.textContent = `${country} — ${price} ₽ (только Telegram)`; el.classList.add('show'); }
+    else { el.textContent = ''; el.classList.remove('show'); }
+  }
+  document.getElementById('country').addEventListener('change', function() {
+    const opt = this.options[this.selectedIndex];
+    if (this.value) showPrice(this.value, opt.dataset.price || '');
+    else showPrice('', '');
+  });
+
+  function submitOrder() {
+    const name = document.getElementById('name').value.trim();
+    const phone = document.getElementById('phone').value.trim();
+    const select = document.getElementById('country');
+    const country = select.value;
+    const price = select.options[select.selectedIndex]?.dataset.price;
+    if (!name || !phone) return showToast('Заполните имя и контакт', 'error');
+    if (!country || !price) return showToast('Выберите страну номера', 'error');
+    const user = currentUser();
+    if (!user) {
+      window._pendingOrder = { name, phone, country, price };
+      closeModal('modal');
+      showToast('Войдите или зарегистрируйтесь, чтобы оформить заказ', 'error');
+      openAuth();
+      return;
+    }
+    const order = {
+      id: 'ORD-' + Date.now().toString().slice(-8),
+      name, phone, country, price: parseInt(price),
+      status: 'pending', createdAt: new Date().toISOString()
+    };
+    user.orders = user.orders || [];
+    user.orders.unshift(order);
+    saveUser(user);
+    closeModal('modal');
+    document.getElementById('name').value = '';
+    document.getElementById('phone').value = '';
+    document.getElementById('country').value = '';
+    showPrice('', '');
+    window._pendingOrder = null;
+    renderHeader();
+    openPayment(order);
+    creditReferrerIfNeeded(user.email);
+  }
+
+  function restorePendingOrderIfAny() {
+    const p = window._pendingOrder;
+    if (!p) return;
+    const user = currentUser();
+    if (!user) return;
+    const order = {
+      id: 'ORD-' + Date.now().toString().slice(-8),
+      name: p.name, phone: p.phone, country: p.country,
+      price: parseInt(p.price), status: 'pending', createdAt: new Date().toISOString()
+    };
+    user.orders = user.orders || [];
+    user.orders.unshift(order);
+    saveUser(user);
+    window._pendingOrder = null;
+    renderHeader();
+    openPayment(order);
+    creditReferrerIfNeeded(user.email);
+  }
+
+  let _currentPayOrder = null;
+  function openPayment(order) {
+    _currentPayOrder = order;
+    document.getElementById('payAmount').textContent = order.price + ' ₽';
+    document.getElementById('payCountry').textContent = order.country + ' · ' + order.id;
+    const link = `https://qr.nspk.ru/${SBP_PHONE}?amount=${order.price}&comment=${encodeURIComponent(order.id)}`;
+    document.getElementById('payLink').textContent = link;
+    document.getElementById('payLink').href = link;
+    document.getElementById('qrCode').innerHTML = `<img src="${makeQrUrl(link, 180)}" alt="QR" width="180" height="180">`;
+    const tgText = encodeURIComponent(`Здравствуйте! Я оплатил заказ ${order.id}.\nСтрана: ${order.country}\nСумма: ${order.price} ₽\nИмя: ${order.name}\nКонтакт: ${order.phone}\n\nПрикрепляю скриншот оплаты.`);
+    document.getElementById('tgScreenshotBtn').href = `https://t.me/${TG_MANAGER}?text=${tgText}`;
+    openModal('paymentModal');
+  }
+  function copyPayLink() { copyToClipboard(document.getElementById('payLink').href, 'Ссылка на оплату скопирована'); }
+  function markAsPaid() {
+    if (!_currentPayOrder) return;
+    const user = currentUser();
+    if (!user) return;
+    const order = user.orders.find(o => o.id === _currentPayOrder.id);
+    if (order) order.status = 'paid';
+    saveUser(user);
+    creditReferrerIfNeeded(user.email);
+    closeModal('paymentModal');
+    showToast('Заказ принят. Отправьте скриншот в Telegram @' + TG_MANAGER, 'success');
+    renderHeader();
+    setTimeout(() => document.getElementById('tgScreenshotBtn').click(), 400);
+  }
+
+  function openOrders() {
+    const user = currentUser();
+    if (!user) { openAuth(); return; }
+    const list = document.getElementById('ordersList');
+    const orders = user.orders || [];
+    if (orders.length === 0) {
+      list.innerHTML = `<div class="empty-state"><div class="es-title">Заказов пока нет</div><div class="es-text">Купите номер — он появится здесь.</div><button class="btn btn-primary" onclick="closeModal('ordersModal'); document.getElementById('services').scrollIntoView({behavior:'smooth'})">Купить номер</button></div>`;
+    } else {
+      list.innerHTML = orders.map(o => {
+        let statusLabel = 'Ожидает оплаты', statusClass = 'pending';
+        if (o.status === 'paid') { statusLabel = 'Оплачен'; statusClass = 'paid'; }
+        if (o.status === 'done') { statusLabel = 'Выдан'; statusClass = 'done'; }
+        return `<div class="order-item"><div class="oi-info"><div class="oi-title">${o.country} · ${o.id}</div><div class="oi-meta">${new Date(o.createdAt).toLocaleString('ru-RU')} · <span class="order-status ${statusClass}">${statusLabel}</span></div></div><div class="oi-price">${o.price} ₽</div>${o.status === 'pending' ? `<button class="btn btn-outline btn-sm" onclick="closeModal('ordersModal'); openPaymentById('${o.id}')">Оплатить</button>` : ''}</div>`;
+      }).join('');
+    }
+    openModal('ordersModal');
+  }
+  function openPaymentById(id) {
+    const user = currentUser();
+    if (!user) return;
+    const order = (user.orders || []).find(o => o.id === id);
+    if (order) openPayment(order);
+  }
+
+  function openReferral() {
+    const user = currentUser();
+    if (!user) { showToast('Войдите или зарегистрируйтесь, чтобы получить ссылку', 'error'); openAuth(); return; }
+    const code = makeRefCode(user.email);
+    const link = getRefLink(user.email);
+    document.getElementById('refLinkInput').value = link;
+    const db = loadDB();
+    const invited = db.users.filter(u => u.referredBy === code);
+    document.getElementById('refCount').textContent = invited.length;
+    document.getElementById('refEarned').textContent = (user.refEarnings || 0) + ' ₽';
+    const list = document.getElementById('refList');
+    if (invited.length === 0) {
+      list.innerHTML = `<div class="empty-state" style="padding: 24px 16px;"><div class="es-text" style="margin-bottom:0;">Пока никого нет. Поделитесь ссылкой — друзья появятся здесь.</div></div>`;
+    } else {
+      list.innerHTML = invited.map(u => {
+        const status = u.referralRewarded ? '<span class="ri-status paid">+30 ₽</span>' : '<span class="ri-status waiting">Ждёт покупки</span>';
+        return `<div class="ref-item"><div class="ri-info"><div class="ri-name">${u.name || u.email.split('@')[0]}</div><div class="ri-meta">${new Date(u.createdAt || Date.now()).toLocaleDateString('ru-RU')}</div></div>${status}</div>`;
+      }).join('');
+    }
+    const shareText = encodeURIComponent(`Привет! Купи виртуальный номер для Telegram — регистрация и разблокировка за 30 секунд. Переходи по моей ссылке: ${link}`);
+    document.getElementById('shareTg').href = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent('Виртуальные номера для Telegram')}`;
+    document.getElementById('shareWa').href = `https://wa.me/?text=${shareText}`;
+    openModal('referralModal');
+  }
+  function copyRefLink() { copyToClipboard(document.getElementById('refLinkInput').value, 'Реферальная ссылка скопирована'); }
+  function shareNative() {
+    const link = document.getElementById('refLinkInput').value;
+    if (navigator.share) { navigator.share({ title: 'VirtNum', text: 'Купи виртуальный номер для Telegram', url: link }).catch(() => {}); } else copyRefLink();
+  }
+
+  let authMode = 'register';
+  function openAuth() { setAuthMode('register'); openModal('authModal'); }
+  function setAuthMode(mode) {
+    authMode = mode;
+    const title = document.getElementById('authTitle');
+    const sub = document.getElementById('authSub');
+    const nameInput = document.getElementById('authName');
+    const submitBtn = document.getElementById('authSubmitBtn');
+    const switchText = document.getElementById('authSwitchText');
+    const switchLink = document.getElementById('authSwitchLink');
+    if (mode === 'register') {
+      title.textContent = 'Регистрация'; sub.textContent = 'Создайте аккаунт, чтобы покупать номера и пополнять баланс.';
+      nameInput.style.display = 'block'; submitBtn.textContent = 'Зарегистрироваться';
+      switchText.textContent = 'Уже есть аккаунт?'; switchLink.textContent = 'Войти';
+    } else {
+      title.textContent = 'Вход'; sub.textContent = 'Войдите в свой аккаунт VirtNum.';
+      nameInput.style.display = 'none'; submitBtn.textContent = 'Войти';
+      switchText.textContent = 'Нет аккаунта?'; switchLink.textContent = 'Зарегистрироваться';
+    }
+  }
+  function toggleAuthMode() { setAuthMode(authMode === 'register' ? 'login' : 'register'); }
+
+  function submitAuth() {
+    const name = document.getElementById('authName').value.trim();
+    const email = document.getElementById('authEmail').value.trim().toLowerCase();
+    const pass = document.getElementById('authPass').value;
+    if (!email || !pass) return showToast('Заполните email и пароль', 'error');
+    if (!email.includes('@')) return showToast('Некорректный email', 'error');
+    if (pass.length < 4) return showToast('Пароль минимум 4 символа', 'error');
+    const db = loadDB();
+    if (authMode === 'register') {
+      if (!name) return showToast('Введите имя', 'error');
+      if (db.users.some(u => u.email === email)) return showToast('Такой email уже зарегистрирован', 'error');
+      const pendingRef = getPendingRef();
+      let referredBy = null;
+      if (pendingRef && pendingRef !== makeRefCode(email)) {
+        if (db.users.some(u => makeRefCode(u.email) === pendingRef)) referredBy = pendingRef;
+      }
+      const newUser = { name, email, pass, balance: 0, orders: [], refEarnings: 0, referredBy, referralRewarded: false, createdAt: new Date().toISOString() };
+      db.users.push(newUser); db.currentEmail = email; saveDB(db);
+      if (referredBy && REF_WELCOME > 0) { newUser.balance = REF_WELCOME; saveUser(newUser); }
+      clearPendingRef();
+      closeModal('authModal'); renderHeader();
+      showToast(referredBy ? `Аккаунт создан! Вам начислен приветственный бонус ${REF_WELCOME} ₽` : 'Аккаунт создан. Добро пожаловать!', 'success');
+    } else {
+      const user = db.users.find(u => u.email === email);
+      if (!user) return showToast('Аккаунт не найден', 'error');
+      if (user.pass !== pass) return showToast('Неверный пароль', 'error');
+      db.currentEmail = email; saveDB(db);
+      closeModal('authModal'); renderHeader();
+      showToast(`С возвращением, ${user.name || user.email}!`, 'success');
+    }
+    document.getElementById('authName').value = '';
+    document.getElementById('authEmail').value = '';
+    document.getElementById('authPass').value = '';
+    restorePendingOrderIfAny();
+  }
+
+  function logout() {
+    const db = loadDB(); db.currentEmail = null; saveDB(db); renderHeader(); showToast('Вы вышли из аккаунта');
+  }
+
+  let selectedTopupAmount = 1000;
+  function openTopup() {
+    if (!currentUser()) { showToast('Сначала войдите или зарегистрируйтесь', 'error'); openAuth(); return; }
+    selectedTopupAmount = 1000;
+    document.querySelectorAll('.topup-btn').forEach((b, i) => b.classList.toggle('active', i === 1));
+    document.getElementById('customAmount').value = '';
+    document.getElementById('topupSum').textContent = '1000';
+    openModal('topupModal');
+  }
+  function selectTopup(btn, amount) {
+    document.querySelectorAll('.topup-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active'); selectedTopupAmount = amount;
+    document.getElementById('customAmount').value = '';
+    document.getElementById('topupSum').textContent = amount;
+  }
+  document.getElementById('customAmount').addEventListener('input', function() {
+    const val = parseInt(this.value);
+    if (val > 0) {
+      document.querySelectorAll('.topup-btn').forEach(b => b.classList.remove('active'));
+      selectedTopupAmount = val;
+      document.getElementById('topupSum').textContent = val;
+    }
+  });
+
+  let _currentTopupAmount = 1000;
+  function openTopupPayment() {
+    const custom = parseInt(document.getElementById('customAmount').value);
+    const amount = custom > 0 ? custom : selectedTopupAmount;
+    if (!amount || amount < 100) return showToast('Минимальная сумма — 100 ₽', 'error');
+    _currentTopupAmount = amount;
+    document.getElementById('topupPayAmount').textContent = amount + ' ₽';
+    const link = `https://qr.nspk.ru/${SBP_PHONE}?amount=${amount}&comment=${encodeURIComponent('TOPUP')}`;
+    document.getElementById('topupPayLink').textContent = link;
+    document.getElementById('topupPayLink').href = link;
+    document.getElementById('topupQrCode').innerHTML = `<img src="${makeQrUrl(link, 180)}" alt="QR" width="180" height="180">`;
+    const user = currentUser();
+    const tgText = encodeURIComponent(`Здравствуйте! Я пополнил баланс на ${amount} ₽.\nАккаунт: ${user ? user.email : '—'}\n\nПрикрепляю скриншот оплаты.`);
+    document.getElementById('topupTgBtn').href = `https://t.me/${TG_MANAGER}?text=${tgText}`;
+    closeModal('topupModal'); openModal('topupPaymentModal');
+  }
+  function copyTopupLink() { copyToClipboard(document.getElementById('topupPayLink').href, 'Ссылка на оплату скопирована'); }
+  function markTopupAsPaid() {
+    const user = currentUser(); if (!user) return;
+    user.balance = (user.balance || 0) + _currentTopupAmount;
+    saveUser(user);
+    closeModal('topupPaymentModal'); renderHeader();
+    showToast(`Баланс пополнен на ${_currentTopupAmount} ₽`, 'success');
+    setTimeout(() => document.getElementById('topupTgBtn').click(), 400);
+  }
+
+  function copyToClipboard(text, successMsg) {
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(text).then(() => showToast(successMsg, 'success')).catch(() => fallbackCopy(text, successMsg));
+    } else fallbackCopy(text, successMsg);
+  }
+  function fallbackCopy(text, successMsg) {
+    const ta = document.createElement('textarea'); ta.value = text;
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); showToast(successMsg, 'success'); }
+    catch { showToast('Не удалось скопировать', 'error'); }
+    document.body.removeChild(ta);
+  }
+
+  let toastTimer;
+  function showToast(msg, type) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = 'toast show' + (type ? ' ' + type : '');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 4000);
+  }
+
+  rememberRefFromUrl();
+  renderHeader();
+
+  (function() {
+    const ref = getUrlRefCode();
+    const user = currentUser();
+    if (ref && !user) {
+      setTimeout(() => showToast('Вы перешли по реферальной ссылке — зарегистрируйтесь, чтобы получить бонус', 'success'), 800);
+    }
+  })();
+</script>
+</body>
+</html>
